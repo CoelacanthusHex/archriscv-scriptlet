@@ -3,3 +3,5 @@ archriscv-*.qcow2
 dracut-hook/
 rootfs/
 qcow2/
+u-boot/
+opensbi/
