@@ -1,0 +1,5 @@
+archriscv-*.tar.*
+archriscv-*.qcow2
+dracut-hook/
+rootfs/
+qcow2/
