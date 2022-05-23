@@ -1,0 +1,25 @@
+From a24e04bd50c229d529c7d6efa5d0397abe68911d Mon Sep 17 00:00:00 2001
+From: Coelacanthus <coelacanthus@outlook.com>
+Date: Mon, 23 May 2022 23:23:55 +0800
+Subject: [PATCH] riscv: fix compressed kernel boot
+
+---
+ include/configs/qemu-riscv.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/configs/qemu-riscv.h b/include/configs/qemu-riscv.h
+index 618c3b63d4..11a6cdb8a6 100644
+--- a/include/configs/qemu-riscv.h
++++ b/include/configs/qemu-riscv.h
+@@ -58,6 +58,8 @@
+ 	"scriptaddr=0x88100000\0" \
+ 	"pxefile_addr_r=0x88200000\0" \
+ 	"ramdisk_addr_r=0x88300000\0" \
++	"kernel_comp_addr_r=0x90000000\0" \
++	"kernel_comp_size=0x4000000\0" \
+ 	BOOTENV
+ #endif
+ 
+-- 
+2.36.1
+

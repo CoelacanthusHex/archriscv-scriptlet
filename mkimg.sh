@@ -6,6 +6,26 @@
 . /usr/share/makepkg/util.sh
 colorize
 
+toggle-systemd-firstboot() {
+    msg2 "Toggle systemd-firstboot..."
+    sudo rm ./qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
+    sudo arch-chroot qcow2 mkdir -p /etc/systemd/system/systemd-firstboot.service.d
+    sudo arch-chroot qcow2 cat << EOF | tee /etc/systemd/system/systemd-firstboot.service.d/install.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/systemd-firstboot --prompt
+
+[Install]
+WantedBy=sysinit.target
+EOF
+    sudo arch-chroot qcow2 systemctl enable systemd-firstboot.service
+}
+
+use-fixed-password() {
+    msg2 "Using fixed password..."
+    : # set in rootfs
+}
+
 msg "Building dracut-hook package..."
 
 git clone https://aur.archlinux.org/dracut-hook.git
@@ -20,6 +40,8 @@ pushd u-boot
 git checkout v2022.04
 msg2 "Apply binutils 2.38 compitible patch"
 git apply ../0001-riscv-fix-compitible-with-binutils-2.38.patch
+msg2 "Apply compressed kernel patch"
+git apply ../0002-riscv-fix-compressed-kernel-boot.patch
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
     qemu-riscv64_smode_defconfig
@@ -36,7 +58,7 @@ git cherry-pick -n 5d53b55aa77ffeefd4012445dfa6ad3535e1ff2c
 
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
-    PLATFORM=generic \   
+    PLATFORM=generic \
     FW_PAYLOAD_PATH=../u-boot/u-boot.bin
 popd
 
@@ -76,9 +98,9 @@ sudo pacman \
     --noconfirm \
     -S linux linux-firmware dracut
 
-arch-chroot
-mkdir -p boot/extlinux
-cat << EOF | tee boot/extlinux/extlinux.conf
+sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" --regenerate-all
+sudo arch-chroot qcow2 mkdir -p boot/extlinux
+sudo arch-chroot qcow2 cat << EOF | tee boot/extlinux/extlinux.conf
 menu title Arch RISC-V QEMU Boot
 timeout 100
 default linux
@@ -96,8 +118,10 @@ yes y | sudo pacman \
     --sysroot ./rootfs \
     --sync --clean --clean
 
-msg2 "Remove initialized files to toggle systemd-firstboot..."
-rm ./rootfs/etc/{machine-id,localtime,hostname,shadow,locale.conf}
+# Using fixed password for systemd-firstboot don't ask password for unknown reason
+# https://github.com/CoelacanthusHex/archriscv-scriptlet/issues/1
+#toggle-systemd-firstboot
+use-fixed-password
 
 msg2 "Unmount..."
 sudo umount qcow2
