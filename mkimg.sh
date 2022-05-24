@@ -13,7 +13,7 @@ toggle-systemd-firstboot() {
     sudo arch-chroot qcow2 cat << EOF | tee /etc/systemd/system/systemd-firstboot.service.d/install.conf
 [Service]
 ExecStart=
-ExecStart=/usr/bin/systemd-firstboot --prompt
+ExecStart=/usr/bin/systemd-firstboot --prompt --force
 
 [Install]
 WantedBy=sysinit.target
@@ -118,10 +118,9 @@ yes y | sudo pacman \
     --sysroot ./rootfs \
     --sync --clean --clean
 
-# Using fixed password for systemd-firstboot don't ask password for unknown reason
 # https://github.com/CoelacanthusHex/archriscv-scriptlet/issues/1
-#toggle-systemd-firstboot
-use-fixed-password
+toggle-systemd-firstboot
+#use-fixed-password
 
 msg2 "Unmount..."
 sudo umount qcow2
