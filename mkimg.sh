@@ -26,13 +26,6 @@ use-fixed-password() {
     : # set in rootfs
 }
 
-msg "Building dracut-hook package..."
-
-git clone https://aur.archlinux.org/dracut-hook.git
-pushd dracut-hook
-extra-riscv64-build
-popd
-
 msg "Building u-boot..."
 
 git clone https://github.com/u-boot/u-boot.git
@@ -82,21 +75,13 @@ sudo e2label /dev/nbd0p1 rootfs
 mkdir -p qcow2
 sudo mount /dev/nbd0p1 qcow2
 
-msg "Install dracut-hook package..."
-
-sudo pacman \
-    --root ./qcow2 \
-    --config /usr/share/devtools/pacman-extra-riscv64.conf \
-    --noconfirm \
-    -U ./dracut-hook/dracut-hook-0.5.3-1-any.pkg.tar.zst
-
 msg "Install kernel package..."
 
 sudo pacman \
     --root ./qcow2 \
     --config /usr/share/devtools/pacman-extra-riscv64.conf \
     --noconfirm \
-    -S linux linux-firmware dracut
+    -S linux linux-firmware dracut dracut-hook
 
 sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" --regenerate-all
 sudo arch-chroot qcow2 mkdir -p boot/extlinux
