@@ -34,7 +34,7 @@ git checkout v2022.04
 msg2 "Apply binutils 2.38 compitible patch"
 git apply ../0001-riscv-fix-compitible-with-binutils-2.38.patch
 msg2 "Apply compressed kernel patch"
-git apply ../0002-riscv-fix-compressed-kernel-boot.patch
+git cherry-pick -n c544b281cd3e549a4fcbf4ba9a05a5d72c9557dd
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
     qemu-riscv64_smode_defconfig
