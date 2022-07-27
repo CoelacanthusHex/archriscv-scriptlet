@@ -84,11 +84,9 @@ popd
 
 msg "Install kernel package..."
 
-sudo pacman \
-    --root ./qcow2 \
-    --config /usr/share/devtools/pacman-extra-riscv64.conf \
+sudo arch-chroot qcow2 pacman \
     --noconfirm \
-    -S linux linux-firmware dracut dracut-hook
+    -Syu linux linux-firmware dracut dracut-hook
 
 sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" --regenerate-all
 sudo arch-chroot qcow2 mkdir -p boot/extlinux
