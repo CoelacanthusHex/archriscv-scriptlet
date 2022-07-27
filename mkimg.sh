@@ -76,6 +76,12 @@ sudo e2label /dev/nbd0p1 rootfs
 mkdir -p qcow2
 sudo mount /dev/nbd0p1 qcow2
 
+msg "Extract rootfs..."
+
+pushd qcow2
+sudo bsdtar -pxvf "../archriscv-$(date --rfc-3339=date).tar.zst"
+popd
+
 msg "Install kernel package..."
 
 sudo pacman \
@@ -101,7 +107,7 @@ EOF
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
 yes y | sudo pacman \
-    --sysroot ./rootfs \
+    --sysroot ./qcow2 \
     --sync --clean --clean
 
 # https://github.com/CoelacanthusHex/archriscv-scriptlet/issues/1
