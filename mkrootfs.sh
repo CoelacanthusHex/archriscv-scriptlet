@@ -26,3 +26,6 @@ sudo usermod --root (realpath ./rootfs) --password $(perl -e "print crypt('archr
 
 msg "Compressing rootfs..."
 sudo bsdtar --create --zstd --verbose --xattrs --acls -f "archriscv-$(date --rfc-3339=date).tar.zst" -C rootfs/ .
+
+msg "Clean up rootfs directory..."
+rm -rf ./rootfs
