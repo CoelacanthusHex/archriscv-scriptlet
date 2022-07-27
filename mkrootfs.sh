@@ -22,7 +22,7 @@ yes y | sudo pacman \
     --sync --clean --clean
 
 msg "Set root password (Default: archriscv)..."
-sudo usermod --root (realpath ./rootfs) --password $(perl -e "print crypt('archriscv','yescrypt')") root
+sudo usermod --root $(realpath ./rootfs) --password $(perl -e "print crypt('archriscv','yescrypt')") root
 
 msg "Compressing rootfs..."
 sudo bsdtar --create --zstd --verbose --xattrs --acls -f "archriscv-$(date --rfc-3339=date).tar.zst" -C rootfs/ .
