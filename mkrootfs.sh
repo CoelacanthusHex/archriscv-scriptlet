@@ -28,4 +28,4 @@ msg "Compressing rootfs..."
 sudo bsdtar --create --zstd --verbose --xattrs --acls -f "archriscv-$(date --rfc-3339=date).tar.zst" -C rootfs/ .
 
 msg "Clean up rootfs directory..."
-rm -rf ./rootfs
+sudo rm -rf ./rootfs
