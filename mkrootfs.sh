@@ -9,6 +9,7 @@ colorize
 
 msg "Building rootfs..."
 mkdir -p ./rootfs
+sudo chown root:root ./rootfs
 sudo pacstrap \
     -C /usr/share/devtools/pacman-extra-riscv64.conf \
     -M \
