@@ -75,6 +75,7 @@ sudo e2label /dev/nbd0p1 rootfs
 
 mkdir -p qcow2
 sudo mount /dev/nbd0p1 qcow2
+sudo chown root:root qcow2
 
 msg "Extract rootfs..."
 
