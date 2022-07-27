@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 #
+# SPDX-FileCopyrightText: 2022 Celeste Liu <coelacanthus@outlook.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # shellcheck disable=1091
