@@ -87,7 +87,6 @@ sudo arch-chroot qcow2 pacman \
     --noconfirm \
     -Syu linux linux-firmware dracut dracut-hook
 
-sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" --regenerate-all
 sudo mkdir -p qcow2/boot/extlinux
 cat << EOF | sudo tee qcow2/boot/extlinux/extlinux.conf
 menu title Arch RISC-V QEMU Boot
@@ -100,6 +99,10 @@ label linux
     initrd /boot/initramfs-linux.img
     append earlyprintk rw root=/dev/vda1 rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
 EOF
+
+msg "Re-generate initramfs for QEMU..."
+local kver=$(sudo arch-chroot qcow2 pacman -Si linux | grep -Po '(?<=Version         : ).*')
+sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" /boot/initramfs-linux.img ${kver/.arch/-arch}
 
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
