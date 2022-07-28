@@ -9,8 +9,8 @@ colorize
 
 toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
-    sudo rm ./qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
-    sudo arch-chroot qcow2 mkdir -p /etc/systemd/system/systemd-firstboot.service.d
+    sudo rm -f qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
+    sudo mkdir -p qcow2/etc/systemd/system/systemd-firstboot.service.d
     cat << EOF | sudo tee qcow2/etc/systemd/system/systemd-firstboot.service.d/install.conf
 [Service]
 ExecStart=
