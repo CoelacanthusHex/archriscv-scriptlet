@@ -9,9 +9,9 @@ colorize
 
 toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
-    sudo rm ./qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
-    sudo arch-chroot qcow2 mkdir -p /etc/systemd/system/systemd-firstboot.service.d
-    sudo arch-chroot qcow2 cat << EOF | tee /etc/systemd/system/systemd-firstboot.service.d/install.conf
+    sudo rm -f qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
+    sudo mkdir -p qcow2/etc/systemd/system/systemd-firstboot.service.d
+    cat << EOF | sudo tee qcow2/etc/systemd/system/systemd-firstboot.service.d/install.conf
 [Service]
 ExecStart=
 ExecStart=/usr/bin/systemd-firstboot --prompt --force
@@ -90,8 +90,8 @@ sudo arch-chroot qcow2 pacman \
     -Syu linux linux-firmware dracut dracut-hook
 
 sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" --regenerate-all
-sudo mkdir -p boot/extlinux
-cat << EOF | sudo tee boot/extlinux/extlinux.conf
+sudo mkdir -p qcow2/boot/extlinux
+cat << EOF | sudo tee qcow2/boot/extlinux/extlinux.conf
 menu title Arch RISC-V QEMU Boot
 timeout 100
 default linux
