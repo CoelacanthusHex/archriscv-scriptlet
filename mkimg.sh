@@ -31,11 +31,9 @@ msg "Building u-boot..."
 
 git clone https://github.com/u-boot/u-boot.git
 pushd u-boot
-git checkout v2022.04
+git checkout v2022.07
 msg2 "Apply binutils 2.38 compitible patch"
 git apply ../0001-riscv-fix-compitible-with-binutils-2.38.patch
-msg2 "Apply compressed kernel patch"
-git cherry-pick -n c544b281cd3e549a4fcbf4ba9a05a5d72c9557dd
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
     qemu-riscv64_smode_defconfig
@@ -46,9 +44,7 @@ msg "Building OpenSBI..."
 
 git clone https://github.com/riscv-software-src/opensbi
 pushd opensbi
-git checkout v1.0
-msg2 "Apply binutils 2.38 compitible patch"
-git cherry-pick -n 5d53b55aa77ffeefd4012445dfa6ad3535e1ff2c
+git checkout v1.1
 
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
