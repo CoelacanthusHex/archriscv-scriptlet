@@ -11,7 +11,7 @@ toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
     sudo rm ./qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
     sudo arch-chroot qcow2 mkdir -p /etc/systemd/system/systemd-firstboot.service.d
-    sudo arch-chroot qcow2 cat << EOF | tee /etc/systemd/system/systemd-firstboot.service.d/install.conf
+    cat << EOF | sudo tee qcow2/etc/systemd/system/systemd-firstboot.service.d/install.conf
 [Service]
 ExecStart=
 ExecStart=/usr/bin/systemd-firstboot --prompt --force
