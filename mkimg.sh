@@ -90,8 +90,8 @@ sudo arch-chroot qcow2 pacman \
     -Syu linux linux-firmware dracut dracut-hook
 
 sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" --regenerate-all
-sudo mkdir -p boot/extlinux
-cat << EOF | sudo tee boot/extlinux/extlinux.conf
+sudo mkdir -p qcow2/boot/extlinux
+cat << EOF | sudo tee qcow2/boot/extlinux/extlinux.conf
 menu title Arch RISC-V QEMU Boot
 timeout 100
 default linux
