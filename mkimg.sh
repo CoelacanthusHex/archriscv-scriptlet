@@ -44,7 +44,9 @@ msg "Building OpenSBI..."
 
 git clone https://github.com/riscv-software-src/opensbi
 pushd opensbi
-git checkout v1.1
+git checkout v1.0
+msg2 "Apply binutils 2.38 compitible patch"
+git cherry-pick -n 5d53b55aa77ffeefd4012445dfa6ad3535e1ff2c
 
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
