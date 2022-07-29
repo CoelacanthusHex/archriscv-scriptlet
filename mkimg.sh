@@ -105,7 +105,7 @@ label linux
 EOF
 
 msg "Re-generate initramfs for QEMU..."
-local kver=$(sudo arch-chroot qcow2 pacman -Si linux | grep -Po '(?<=Version         : ).*')
+kver=$(sudo arch-chroot qcow2 pacman -Si linux | grep -Po '(?<=Version         : ).*')
 sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" /boot/initramfs-linux.img ${kver/.arch/-arch}
 
 msg "Clean up..."
