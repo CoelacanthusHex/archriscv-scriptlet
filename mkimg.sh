@@ -100,13 +100,9 @@ default linux
 label linux
     menu label Linux linux
     kernel /boot/vmlinuz-linux
-    initrd /boot/initramfs-linux.img
+    initrd /boot/initramfs-linux-fallback.img
     append earlyprintk rw root=/dev/vda1 rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
 EOF
-
-msg "Re-generate initramfs for QEMU..."
-kver=$(sudo arch-chroot qcow2 pacman -Si linux | grep -Po '(?<=Version         : ).*')
-sudo arch-chroot qcow2 dracut --force --add "qemu qemu-net" /boot/initramfs-linux.img ${kver/.arch/-arch}
 
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
