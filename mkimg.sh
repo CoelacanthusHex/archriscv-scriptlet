@@ -89,7 +89,7 @@ msg "Install kernel package..."
 
 sudo arch-chroot qcow2 pacman \
     --noconfirm \
-    -Syu linux linux-firmware dracut dracut-hook
+    -Syu linux linux-firmware
 
 sudo mkdir -p qcow2/boot/extlinux
 cat << EOF | sudo tee qcow2/boot/extlinux/extlinux.conf
