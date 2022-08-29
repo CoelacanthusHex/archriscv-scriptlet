@@ -31,7 +31,8 @@ msg "Building u-boot..."
 
 [[ -d u-boot ]] || git clone https://github.com/u-boot/u-boot.git
 pushd u-boot
-git checkout master --
+git checkout master
+git checkout master -- ':(top)'
 git pull --rebase
 git checkout v2022.07
 msg2 "Apply binutils 2.38 compitible patch"
@@ -48,8 +49,9 @@ msg "Building OpenSBI..."
 
 [[ -d opensbi ]] || git clone https://github.com/riscv-software-src/opensbi
 pushd opensbi
+git checkout master
+git checkout master -- ':(top)'
 git pull --rebase
-git checkout master --
 git checkout v1.0
 msg2 "Apply binutils 2.38 compitible patch"
 git cherry-pick -n 5d53b55aa77ffeefd4012445dfa6ad3535e1ff2c
