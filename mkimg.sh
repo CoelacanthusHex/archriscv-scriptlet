@@ -36,6 +36,8 @@ git pull --rebase
 git checkout v2022.07
 msg2 "Apply binutils 2.38 compitible patch"
 git apply ../0001-riscv-fix-compitible-with-binutils-2.38.patch
+msg2 "Apply 'virtio: pci: fix bug of virtio_pci_map_capability' patch"
+git apply ../0002-virtio-pci-fix-bug-of-virtio_pci_map_capability.patch
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
     qemu-riscv64_smode_defconfig

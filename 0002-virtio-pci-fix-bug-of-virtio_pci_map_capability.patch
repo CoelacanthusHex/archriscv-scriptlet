@@ -1,0 +1,115 @@
+From patchwork Sun Aug 28 23:53:15 2022
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Xiang W <wxjstz@126.com>
+X-Patchwork-Id: 1671240
+Return-Path: <u-boot-bounces@lists.denx.de>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@legolas.ozlabs.org
+Authentication-Results: legolas.ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=lists.denx.de
+ (client-ip=85.214.62.61; helo=phobos.denx.de;
+ envelope-from=u-boot-bounces@lists.denx.de; receiver=<UNKNOWN>)
+Authentication-Results: legolas.ozlabs.org;
+	dkim=pass (1024-bit key;
+ unprotected) header.d=126.com header.i=@126.com header.a=rsa-sha256
+ header.s=s110527 header.b=VGdtnUqg;
+	dkim-atps=neutral
+Received: from phobos.denx.de (phobos.denx.de [85.214.62.61])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (P-384) server-digest SHA384)
+	(No client certificate requested)
+	by legolas.ozlabs.org (Postfix) with ESMTPS id 4MG9QR3p1hz1ygm
+	for <incoming@patchwork.ozlabs.org>; Mon, 29 Aug 2022 09:54:05 +1000 (AEST)
+Received: from h2850616.stratoserver.net (localhost [IPv6:::1])
+	by phobos.denx.de (Postfix) with ESMTP id 2258D83F69;
+	Mon, 29 Aug 2022 01:53:58 +0200 (CEST)
+Authentication-Results: phobos.denx.de;
+ dmarc=pass (p=none dis=none) header.from=126.com
+Authentication-Results: phobos.denx.de;
+ spf=pass smtp.mailfrom=u-boot-bounces@lists.denx.de
+Authentication-Results: phobos.denx.de;
+	dkim=pass (1024-bit key;
+ unprotected) header.d=126.com header.i=@126.com header.b="VGdtnUqg";
+	dkim-atps=neutral
+Received: by phobos.denx.de (Postfix, from userid 109)
+ id B195183F69; Mon, 29 Aug 2022 01:53:56 +0200 (CEST)
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on phobos.denx.de
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.1 required=5.0 tests=BAYES_00,DKIM_SIGNED,
+ DKIM_VALID,DKIM_VALID_AU,DKIM_VALID_EF,FREEMAIL_FROM,SPF_HELO_NONE,
+ SPF_PASS,T_SCC_BODY_TEXT_LINE autolearn=ham autolearn_force=no
+ version=3.4.2
+Received: from mail-m964.mail.126.com (mail-m964.mail.126.com [123.126.96.4])
+ by phobos.denx.de (Postfix) with ESMTP id DCE4A841D7
+ for <u-boot@lists.denx.de>; Mon, 29 Aug 2022 01:53:52 +0200 (CEST)
+Authentication-Results: phobos.denx.de;
+ dmarc=pass (p=none dis=none) header.from=126.com
+Authentication-Results: phobos.denx.de; spf=pass smtp.mailfrom=wxjstz@126.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=126.com;
+ s=s110527; h=From:Subject:Date:Message-Id:MIME-Version; bh=RIn71
+ S7di+V57wl9VfegrOtPn+A9JhVRoWCZ8oWkP00=; b=VGdtnUqgaONAruptVhAca
+ kbcG5tRTQ2J/Kq18DjOr6okLeeuc/hnxDBQ5Y+osBWmfdIj+v//SYY5ggtevQZBz
+ 2wrWswjrG+c8F4rTAPJQcZ6oCAvJ977Ex+aYGooF/EIQTIZHgctRCLADHZRFoKkk
+ 6HGNOCVAEDbZ3QOo8mEcO0=
+Received: from x390.lan (unknown [210.22.74.224])
+ by smtp9 (Coremail) with SMTP id NeRpCgBnbt4HAAxjlZxvAQ--.27568S2;
+ Mon, 29 Aug 2022 07:53:44 +0800 (CST)
+From: Xiang W <wxjstz@126.com>
+To: u-boot@lists.denx.de
+Cc: Xiang W <wxjstz@126.com>,
+	Felix Yan <felixonmars@archlinux.org>
+Subject: [PATCH] virtio: pci: fix bug of virtio_pci_map_capability
+Date: Mon, 29 Aug 2022 07:53:15 +0800
+Message-Id: <20220828235315.332024-1-wxjstz@126.com>
+X-Mailer: git-send-email 2.30.2
+MIME-Version: 1.0
+X-CM-TRANSID: NeRpCgBnbt4HAAxjlZxvAQ--.27568S2
+X-Coremail-Antispam: 1Uf129KBjvdXoWrKF1fJF45JFWUWFyUGryUWrg_yoWkXFc_Cr
+ s3urWvgry5tF4F93yUZ3WfXr9akas8uanY9F15JryrAwsrAFn8Zr1fZF1qv3Wfur45Cr47
+ Ja15W3s5Zwn3ujkaLaAFLSUrUUUUUb8apTn2vfkv8UJUUUU8Yxn0WfASr-VFAUDa7-sFnT
+ 9fnUUvcSsGvfC2KfnxnUUI43ZEXa7xR9miEtUUUUU==
+X-Originating-IP: [210.22.74.224]
+X-CM-SenderInfo: pz0m23b26rjloofrz/1tbi2QlrOlpEE+1MtQAAsY
+X-BeenThere: u-boot@lists.denx.de
+X-Mailman-Version: 2.1.39
+Precedence: list
+List-Id: U-Boot discussion <u-boot.lists.denx.de>
+List-Unsubscribe: <https://lists.denx.de/options/u-boot>,
+ <mailto:u-boot-request@lists.denx.de?subject=unsubscribe>
+List-Archive: <https://lists.denx.de/pipermail/u-boot/>
+List-Post: <mailto:u-boot@lists.denx.de>
+List-Help: <mailto:u-boot-request@lists.denx.de?subject=help>
+List-Subscribe: <https://lists.denx.de/listinfo/u-boot>,
+ <mailto:u-boot-request@lists.denx.de?subject=subscribe>
+Errors-To: u-boot-bounces@lists.denx.de
+Sender: "U-Boot" <u-boot-bounces@lists.denx.de>
+X-Virus-Scanned: clamav-milter 0.103.6 at phobos.denx.de
+X-Virus-Status: Clean
+
+The bar of the structure virtio_pci_cap is the index, and each base
+address occupies 4 bytes, so it needs to be multiplied by 4.
+
+This patch fixes a bug reported by Felix Yan
+https://lists.denx.de/pipermail/u-boot/2022-August/492779.html
+
+Signed-off-by: Xiang W <wxjstz@126.com>
+Tested-by: Felix Yan <felixonmars@archlinux.org>
+---
+ drivers/virtio/virtio_pci_modern.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/virtio/virtio_pci_modern.c b/drivers/virtio/virtio_pci_modern.c
+index 880a12cc28..cfde4007f5 100644
+--- a/drivers/virtio/virtio_pci_modern.c
++++ b/drivers/virtio/virtio_pci_modern.c
+@@ -466,7 +466,7 @@ static void __iomem *virtio_pci_map_capability(struct udevice *udev,
+ 	unsigned long mask =
+ 			PCI_REGION_TYPE | PCI_REGION_SYS_MEMORY | PCI_REGION_RO;
+ 	unsigned long flags = PCI_REGION_MEM;
+-	u8 *p = dm_pci_map_bar(udev, PCI_BASE_ADDRESS_0 + cap->bar, cap->offset,
++	u8 *p = dm_pci_map_bar(udev, PCI_BASE_ADDRESS_0 + 4 * cap->bar, cap->offset,
+ 			       cap->length, mask, flags);
+ 
+ 	return (void __iomem *)p;
