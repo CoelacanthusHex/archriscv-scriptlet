@@ -1,15 +1,63 @@
 #!/usr/bin/bash
 #
-# SPDX-FileCopyrightText: 2022 Celeste Liu <coelacanthus@outlook.com>
+# SPDX-FileCopyrightText: 2022 Celeste Liu <CoelacanthusHex@gmail.com>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # shellcheck disable=1091
 . /usr/share/makepkg/util.sh
 colorize
 
+verbose=0
+use_fixed_password=0
+varbose_arg=
+
+show_help() {
+cat << EOF
+Usage: ${0##*/} [-hvf] [-p PASSWORD] [-r ROOTFS] [FILENAME]
+Create Arch RISC-V qemu image.
+
+    FILENAME    generated image file name
+                default: 'archriscv-$(date --rfc-3339=date).qcow2'
+
+    -h          display this help and exit
+    -f          use fixed password instead of using systemd-firstboot to ask
+    -p PASSWORD set root password to PASSWORD instead of passwd in rootfs
+    -r ROOTFS   specify rootfs file name
+    -v          verbose mode
+EOF
+}
+
+parse-args() {
+    local OPTIND=1
+    while getopts 'hvfr:p:' opt; do
+      case $opt in
+        h)
+            show_help
+            exit 0
+            ;;
+        v)  verbose=$((verbose+1))
+            varbose_arg="--verbose"
+            ;;
+        f)
+            use_fixed_password=1
+            ;;
+        p)  password=$OPTARG
+            ;;
+        r)  rootfs=${OPTARG:-archriscv-$(date --rfc-3339=date).tar.zst}
+            ;;
+        *)
+            show_help >&2
+            exit 1
+            ;;
+      esac
+  done
+  shift "$(( OPTIND-1 ))"
+  filename=${1:-archriscv-$(date --rfc-3339=date).qcow2}
+}
+
 toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
-    sudo rm -f qcow2/etc/{machine-id,localtime,hostname,shadow,locale.conf}
+    sudo rm -f qcow2/etc/{machine-id,hostname,shadow}
     sudo mkdir -p qcow2/etc/systemd/system/systemd-firstboot.service.d
     cat << EOF | sudo tee qcow2/etc/systemd/system/systemd-firstboot.service.d/install.conf
 [Service]
@@ -23,9 +71,11 @@ EOF
 }
 
 use-fixed-password() {
-    msg2 "Using fixed password..."
-    : # set in rootfs
+    msg2 "Using fixed password... $password"
+    [[ -n $password ]] && sudo usermod --root $(realpath ./qcow2) --password $(openssl passwd -6 "$password") root
 }
+
+parse-args "$@"
 
 msg "Building u-boot..."
 
@@ -62,10 +112,12 @@ make \
     FW_PAYLOAD_PATH=../u-boot/u-boot.bin
 popd
 
+cp ./opensbi/build/platform/generic/firmware/fw_payload.bin opensbi_fw_payload.bin
+
 msg "Create image file..."
-qemu-img create -f qcow2 "archriscv-$(date --rfc-3339=date).qcow2" 10G
+qemu-img create -f qcow2 "$filename" 10G
 sudo modprobe nbd max_part=16
-sudo qemu-nbd -c /dev/nbd0 "archriscv-$(date --rfc-3339=date).qcow2"
+sudo qemu-nbd -c /dev/nbd0 "$filename"
 
 sudo sfdisk /dev/nbd0 <<EOF
 label: dos
@@ -86,7 +138,7 @@ sudo chown root:root qcow2
 msg "Extract rootfs..."
 
 pushd qcow2
-sudo bsdtar -pxvf "../archriscv-$(date --rfc-3339=date).tar.zst"
+sudo bsdtar $varbose_arg -pxf "../$rootfs"
 popd
 
 msg "Install kernel package..."
@@ -114,9 +166,7 @@ yes y | sudo pacman \
     --sysroot ./qcow2 \
     --sync --clean --clean
 
-# https://github.com/CoelacanthusHex/archriscv-scriptlet/issues/1
-toggle-systemd-firstboot
-#use-fixed-password
+(( use_fixed_password==0 )) && toggle-systemd-firstboot || use-fixed-password
 
 msg2 "Unmount..."
 sudo umount qcow2

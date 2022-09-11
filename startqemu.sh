@@ -13,7 +13,7 @@ qemu-system-riscv64 \
     -machine virt \
     -smp 8 \
     -m 4G \
-    -bios ./opensbi/build/platform/generic/firmware/fw_payload.bin \
+    -bios ./opensbi_fw_payload.bin \
     -device virtio-blk-device,drive=hd0 \
     -object rng-random,filename=/dev/urandom,id=rng0 \
     -device virtio-rng-device,rng=rng0 \
