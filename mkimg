@@ -10,6 +10,7 @@ colorize
 verbose=0
 use_fixed_password=0
 varbose_arg=
+rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
 
 show_help() {
 cat << EOF
@@ -43,7 +44,7 @@ parse-args() {
             ;;
         p)  password=$OPTARG
             ;;
-        r)  rootfs=${OPTARG:-archriscv-$(date --rfc-3339=date).tar.zst}
+        r)  rootfs=$OPTARG
             ;;
         *)
             show_help >&2
