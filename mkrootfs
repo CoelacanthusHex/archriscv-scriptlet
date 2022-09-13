@@ -9,6 +9,7 @@ colorize
 
 verbose=0
 varbose_arg=
+password='archriscv'
 
 show_help() {
 cat << EOF
@@ -36,7 +37,7 @@ parse-args() {
         v)  verbose=$((verbose+1))
             varbose_arg="--verbose"
             ;;
-        p)  password=${OPTARG:-archriscv}
+        p)  password=$OPTARG
             ;;
         *)
             show_help >&2
