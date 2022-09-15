@@ -7,6 +7,14 @@
 . /usr/share/makepkg/util.sh
 colorize
 
+parse-args() {
+    local OPTIND=1
+    shift "$(( OPTIND-1 ))"
+    file=${1:-archriscv-$(date --rfc-3339=date).qcow2}
+}
+
+parse-args "$@"
+
 msg "Starting qemu"
 qemu-system-riscv64 \
     -nographic \
@@ -17,5 +25,5 @@ qemu-system-riscv64 \
     -device virtio-blk-device,drive=hd0 \
     -object rng-random,filename=/dev/urandom,id=rng0 \
     -device virtio-rng-device,rng=rng0 \
-    -drive file=archriscv-$(date --rfc-3339=date).qcow2,format=qcow2,id=hd0 \
+    -drive file="$file",format=qcow2,id=hd0 \
     -monitor unix:/tmp/qemu-monitor,server,nowait
