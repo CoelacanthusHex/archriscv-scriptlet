@@ -85,11 +85,10 @@ pushd u-boot
 git checkout master
 git checkout master -- ':(top)'
 git pull --rebase
-git checkout v2022.07
+git checkout v2022.10
 msg2 "Apply binutils 2.38 compitible patch"
-git apply ../0001-riscv-fix-compitible-with-binutils-2.38.patch
-msg2 "Apply 'virtio: pci: fix bug of virtio_pci_map_capability' patch"
-git apply ../0002-virtio-pci-fix-bug-of-virtio_pci_map_capability.patch
+git cherry-pick -n 1dde977518f13824b847e23275001191139bc384
+
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
     qemu-riscv64_smode_defconfig
@@ -103,9 +102,7 @@ pushd opensbi
 git checkout master
 git checkout master -- ':(top)'
 git pull --rebase
-git checkout v1.0
-msg2 "Apply binutils 2.38 compitible patch"
-git cherry-pick -n 5d53b55aa77ffeefd4012445dfa6ad3535e1ff2c
+git checkout v1.1
 
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
