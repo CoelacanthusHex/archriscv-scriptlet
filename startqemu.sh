@@ -21,6 +21,7 @@ qemu-system-riscv64 \
     -machine virt \
     -smp 8 \
     -m 4G \
+    -netdev user,id=n0 -device virtio-net,netdev=n0 \
     -bios ./opensbi_fw_payload.bin \
     -device virtio-blk-device,drive=hd0 \
     -object rng-random,filename=/dev/urandom,id=rng0 \

@@ -59,7 +59,7 @@ parse-args() {
 toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
     sudo rm -f qcow2/etc/{machine-id,hostname,shadow}
-    sudo arch-chroot qcow2 systemctl enable systemd-firstboot.service
+    sudo systemd-nspawn -D qcow2 systemctl enable systemd-firstboot.service
 }
 
 use-fixed-password() {
@@ -132,7 +132,7 @@ popd
 
 msg "Install kernel package..."
 
-sudo arch-chroot qcow2 pacman \
+sudo systemd-nspawn -D qcow2 pacman \
     --noconfirm \
     -Syu linux linux-firmware
 
@@ -148,6 +148,15 @@ label linux
     initrd /boot/initramfs-linux-fallback.img
     append earlyprintk rw root=/dev/vda1 rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
 EOF
+
+cat << EOF | sudo tee qcow2/etc/systemd/network/default.network
+[Match]
+Name=en*
+
+[Network]
+DHCP=yes
+EOF
+sudo systemd-nspawn -D qcow2 systemctl enable systemd-networkd.service
 
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
