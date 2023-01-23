@@ -105,7 +105,7 @@ cp ./opensbi/build/platform/generic/firmware/fw_payload.bin opensbi_fw_payload.b
 
 msg "Create image file..."
 qemu-img create -f qcow2 "$filename" 10G
-sudo modprobe nbd max_part=16
+sudo modprobe nbd max_part=16 || exit 1
 sudo qemu-nbd -c /dev/nbd0 "$filename"
 
 sudo sfdisk /dev/nbd0 <<EOF
