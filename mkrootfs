@@ -8,7 +8,7 @@
 colorize
 
 verbose=0
-varbose_arg=
+verbose_arg=
 password='archriscv'
 
 show_help() {
@@ -35,7 +35,7 @@ parse-args() {
             exit 0
             ;;
         v)  verbose=$((verbose+1))
-            varbose_arg="--verbose"
+            verbose_arg="--verbose"
             ;;
         p)  password=$OPTARG
             ;;
@@ -75,7 +75,7 @@ sudo usermod --root $(realpath ./rootfs) --password $(openssl passwd -6 "$passwo
 msg "Compressing rootfs..."
 sudo bsdtar --create \
     --auto-compress --options "compression-level=9"\
-    $varbose_arg \
+    $verbose_arg \
     --xattrs --acls\
     -f "$filename" -C rootfs/ .
 
