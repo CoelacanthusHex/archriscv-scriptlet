@@ -9,6 +9,7 @@ Useful scripts for building and running Arch RISC-V Qcow image.
 * qemu-img
 * qemu-system-riscv
 * riscv64-linux-gnu-gcc
+* devtools-riscv64 ([AUR](https://aur.archlinux.org/packages/devtools-riscv64))
 
 ## Build Step
 
