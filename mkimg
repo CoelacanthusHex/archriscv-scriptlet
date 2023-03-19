@@ -76,9 +76,7 @@ pushd u-boot
 git checkout master -- ':(top)'
 git checkout master
 git pull --rebase
-git checkout v2022.10
-msg2 "Apply binutils 2.38 compitible patch"
-git cherry-pick -n 1dde977518f13824b847e23275001191139bc384
+git checkout v2023.01
 
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
@@ -93,7 +91,7 @@ pushd opensbi
 git checkout master -- ':(top)'
 git checkout master
 git pull --rebase
-git checkout v1.1
+git checkout v1.2
 
 make \
     CROSS_COMPILE=riscv64-linux-gnu- \
