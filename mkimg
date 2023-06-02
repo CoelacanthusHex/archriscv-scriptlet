@@ -143,7 +143,7 @@ sudo mkdir -p mnt/boot/extlinux
 cat << EOF | sudo tee mnt/boot/extlinux/extlinux.conf
 menu title Arch RISC-V Boot Menu
 timeout 100
-default linux
+default linux-fallback
 
 label linux
     menu label Linux linux
