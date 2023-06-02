@@ -71,16 +71,12 @@ use-fixed-password() {
 
 parse-args "$@"
 
-if [ $build_firmware ]
+if [ $build_firmware == 1 ]
 then
     msg "Building U-Boot..."
 
     [[ -d u-boot ]] || git clone --depth 1 -b v2023.04 https://github.com/u-boot/u-boot.git
     pushd u-boot
-
-    # See patch notes for details, may be removed if anyone has objections
-    curl -O https://raw.githubusercontent.com/LekKit/patches-misc/cc40906fbf1de9ae466304157f2bf7b8cc909cbe/uboot/uboot_rvvm_support.patch
-    patch -N -p1 -i uboot_rvvm_support.patch
 
     make \
         CROSS_COMPILE=riscv64-linux-gnu- \
@@ -134,13 +130,13 @@ partuuid=$(sudo findmnt mnt -o UUID -n)
 msg "Extract rootfs..."
 
 pushd mnt
-sudo bsdtar $varbose_arg -pxf "../$rootfs"
+sudo bsdtar $varbose_arg -kpxf "../$rootfs"
 popd
 
 msg "Install kernel package..."
 
 sudo systemd-nspawn -D mnt pacman \
-    --noconfirm \
+    --noconfirm --needed \
     -Syu linux linux-firmware
 
 sudo mkdir -p mnt/boot/extlinux
