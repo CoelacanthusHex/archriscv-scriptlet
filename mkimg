@@ -9,19 +9,22 @@ colorize
 
 verbose=0
 use_fixed_password=0
+build_firmware=1
 varbose_arg=
 rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
 
 show_help() {
 cat << EOF
-Usage: ${0##*/} [-hvf] [-p PASSWORD] [-r ROOTFS] [FILENAME]
-Create Arch RISC-V qemu image.
+Usage: ${0##*/} [-hvfd] [-p PASSWORD] [-r ROOTFS] [FILENAME]
+Create Arch RISC-V distro image.
 
     FILENAME    generated image file name
                 default: 'archriscv-$(date --rfc-3339=date).qcow2'
+                unless the extension is qcow2, implies raw disk format
 
     -h          display this help and exit
     -f          use fixed password instead of using systemd-firstboot to ask
+    -d          only build the disk image and omit building OpenSBI/U-Boot
     -p PASSWORD set root password to PASSWORD instead of passwd in rootfs
     -r ROOTFS   specify rootfs file name
     -v          verbose mode
@@ -30,24 +33,23 @@ EOF
 
 parse-args() {
     local OPTIND=1
-    while getopts 'hvfr:p:' opt; do
+    while getopts 'hvfdr:p:' opt; do
       case $opt in
-        h)
-            show_help
+        h)  show_help
             exit 0
             ;;
         v)  verbose=$((verbose+1))
             varbose_arg="--verbose"
             ;;
-        f)
-            use_fixed_password=1
+        f)  use_fixed_password=1
+            ;;
+        d)  build_firmware=0
             ;;
         p)  password=$OPTARG
             ;;
         r)  rootfs=$OPTARG
             ;;
-        *)
-            show_help >&2
+        *)  show_help >&2
             exit 1
             ;;
       esac
@@ -58,112 +60,127 @@ parse-args() {
 
 toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
-    sudo rm -f qcow2/etc/{machine-id,hostname,shadow}
-    sudo systemd-nspawn -D qcow2 systemctl enable systemd-firstboot.service
+    sudo rm -f mnt/etc/{machine-id,hostname,shadow}
+    sudo systemd-nspawn -D mnt systemctl enable systemd-firstboot.service
 }
 
 use-fixed-password() {
     msg2 "Using fixed password... $password"
-    [[ -n $password ]] && sudo usermod --root $(realpath ./qcow2) --password $(openssl passwd -6 "$password") root
+    [[ -n $password ]] && sudo usermod --root $(realpath ./mnt) --password $(openssl passwd -6 "$password") root
 }
 
 parse-args "$@"
 
-msg "Building u-boot..."
+if [ $build_firmware == 1 ]
+then
+    msg "Building U-Boot..."
 
-[[ -d u-boot ]] || git clone https://github.com/u-boot/u-boot.git
-pushd u-boot
-git checkout master -- ':(top)'
-git checkout master
-git pull --rebase
-git checkout v2023.04
+    [[ -d u-boot ]] || git clone --depth 1 -b v2023.04 https://github.com/u-boot/u-boot.git
+    pushd u-boot
 
-make \
-    CROSS_COMPILE=riscv64-linux-gnu- \
-    qemu-riscv64_smode_defconfig
-make CROSS_COMPILE=riscv64-linux-gnu-
-popd
+    make \
+        CROSS_COMPILE=riscv64-linux-gnu- \
+        qemu-riscv64_smode_defconfig
+    make CROSS_COMPILE=riscv64-linux-gnu-
+    popd
 
-msg "Building OpenSBI..."
+    msg "Building OpenSBI..."
 
-[[ -d opensbi ]] || git clone https://github.com/riscv-software-src/opensbi
-pushd opensbi
-git checkout master -- ':(top)'
-git checkout master
-git pull --rebase
-git checkout v1.1
+    [[ -d opensbi ]] || git clone --depth 1 -b v1.2 https://github.com/riscv-software-src/opensbi
+    pushd opensbi
 
-make \
-    CROSS_COMPILE=riscv64-linux-gnu- \
-    PLATFORM=generic \
-    FW_PAYLOAD_PATH=../u-boot/u-boot.bin
-popd
+    make \
+        CROSS_COMPILE=riscv64-linux-gnu- \
+        PLATFORM=generic \
+        FW_PAYLOAD_PATH=../u-boot/u-boot.bin
+    popd
 
-cp ./opensbi/build/platform/generic/firmware/fw_payload.bin opensbi_fw_payload.bin
+    cp ./opensbi/build/platform/generic/firmware/fw_payload.bin opensbi_fw_payload.bin
+fi
 
-msg "Create image file..."
-qemu-img create -f qcow2 "$filename" 10G
-sudo modprobe nbd max_part=16 || exit 1
-sudo qemu-nbd -c /dev/nbd0 "$filename"
+if [[ $filename == *.qcow2 ]]
+then
+    msg "Create QCOW2 image..."
+    qemu-img create -f qcow2 "$filename" 10G
+    sudo modprobe nbd max_part=16 || exit 1
+    # Possible NBD device collision?
+    sudo qemu-nbd -c /dev/nbd0 "$filename"
+    loopdev=/dev/nbd0
+else
+    msg "Create raw image..."
+    fallocate "$filename" -l 10G
+    loopdev=$(sudo losetup --show -P -f "$filename")
+fi
 
-sudo sfdisk /dev/nbd0 <<EOF
-label: dos
-label-id: 0x17527589
-device: /dev/nbd0
-unit: sectors
+msg "Partitioning..."
+(echo n; echo p; echo 1; echo ''; echo ''; echo w) | sudo fdisk "$loopdev"
 
-/dev/nbd0p1 : start=        2048, type=83, bootable
-EOF
+sudo partprobe "$loopdev"
+partdev="$loopdev"p1
 
-sudo mkfs.ext4 /dev/nbd0p1
-sudo e2label /dev/nbd0p1 rootfs
+sudo mkfs.ext4 "$partdev"
+sudo e2label "$partdev" rootfs
 
-sudo mkdir -p qcow2
-sudo mount /dev/nbd0p1 qcow2
-sudo chown root:root qcow2
+sudo mkdir -p mnt
+sudo mount "$partdev" mnt
+sudo chown root:root mnt
+
+partuuid=$(sudo findmnt mnt -o UUID -n)
 
 msg "Extract rootfs..."
 
-pushd qcow2
-sudo bsdtar $varbose_arg -pxf "../$rootfs"
+pushd mnt
+sudo bsdtar $varbose_arg -kpxf "../$rootfs"
 popd
 
 msg "Install kernel package..."
 
-sudo systemd-nspawn -D qcow2 pacman \
-    --noconfirm \
+sudo systemd-nspawn -D mnt pacman \
+    --noconfirm --needed \
     -Syu linux linux-firmware
 
-sudo mkdir -p qcow2/boot/extlinux
-cat << EOF | sudo tee qcow2/boot/extlinux/extlinux.conf
-menu title Arch RISC-V QEMU Boot
+sudo mkdir -p mnt/boot/extlinux
+cat << EOF | sudo tee mnt/boot/extlinux/extlinux.conf
+menu title Arch RISC-V Boot Menu
 timeout 100
-default linux
+default linux-fallback
 
 label linux
     menu label Linux linux
     kernel /boot/vmlinuz-linux
+    initrd /boot/initramfs-linux.img
+    append earlyprintk rw root=UUID=$partuuid rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
+
+label linux-fallback
+    menu label Linux linux (fallback initramfs)
+    kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux-fallback.img
-    append earlyprintk rw root=/dev/vda1 rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
+    append earlyprintk rw root=UUID=$partuuid rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
 EOF
 
-cat << EOF | sudo tee qcow2/etc/systemd/network/default.network
+cat << EOF | sudo tee mnt/etc/systemd/network/default.network
 [Match]
 Name=en*
 
 [Network]
 DHCP=yes
 EOF
-sudo systemd-nspawn -D qcow2 systemctl enable systemd-networkd.service
+sudo systemd-nspawn -D mnt systemctl enable systemd-networkd.service
 
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
 yes y | sudo pacman \
-    --sysroot ./qcow2 \
+    --sysroot ./mnt \
     --sync --clean --clean
 
 (( use_fixed_password==0 )) && toggle-systemd-firstboot || use-fixed-password
 
-msg2 "Unmount..."
-sudo umount qcow2
-sudo qemu-nbd -d /dev/nbd0
+msg2 "Unmount and sync..."
+sudo umount mnt
+if [[ $filename == *.qcow2 ]]
+then
+    sudo qemu-nbd -d "$loopdev"
+else
+    sudo losetup -d "$loopdev"
+fi
+sudo sync
