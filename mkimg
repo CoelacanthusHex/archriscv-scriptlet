@@ -13,6 +13,9 @@ build_firmware=1
 varbose_arg=
 rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
 
+uboot_version=v2023.4
+opensbi_version=v1.2
+
 show_help() {
 cat << EOF
 Usage: ${0##*/} [-hvfd] [-p PASSWORD] [-r ROOTFS] [FILENAME]
@@ -79,10 +82,10 @@ then
         pushd u-boot
         git checkout HEAD -- ':(top)'
         git fetch origin
-        git checkout v2023.04
+        git checkout $uboot_version
         popd
     else
-        git clone --filter=blob:none -b v2023.04 https://github.com/u-boot/u-boot.git
+        git clone --filter=blob:none -b $uboot_version https://github.com/u-boot/u-boot.git
     fi
     pushd u-boot
 
@@ -98,10 +101,10 @@ then
         pushd opensbi
         git checkout HEAD -- ':(top)'
         git fetch origin
-        git checkout v2023.04
+        git checkout $opensbi_version
         popd
     else
-        git clone --filter=blob:none -b v1.2 https://github.com/riscv-software-src/opensbi
+        git clone --filter=blob:none -b $opensbi_version https://github.com/riscv-software-src/opensbi
     fi
     pushd opensbi
 
