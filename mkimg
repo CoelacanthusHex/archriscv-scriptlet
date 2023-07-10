@@ -75,7 +75,16 @@ if [ $build_firmware == 1 ]
 then
     msg "Building U-Boot..."
 
-    [[ -d u-boot ]] || git clone --depth 1 -b v2023.04 https://github.com/u-boot/u-boot.git
+    if [[ -d u-boot ]]; then
+        pushd u-boot
+        git checkout master -- ':(top)'
+        git checkout master
+        git pull --rebase
+        git checkout v2023.04
+        popd
+    else
+        git clone --depth 1 -b v2023.04 https://github.com/u-boot/u-boot.git
+    fi
     pushd u-boot
 
     make \
@@ -86,7 +95,16 @@ then
 
     msg "Building OpenSBI..."
 
-    [[ -d opensbi ]] || git clone --depth 1 -b v1.2 https://github.com/riscv-software-src/opensbi
+    if [[ -d opensbi ]]; then
+        pushd opensbi
+        git checkout master -- ':(top)'
+        git checkout master
+        git pull --rebase
+        git checkout v2023.04
+        popd
+    else
+        git clone --depth 1 -b v1.2 https://github.com/riscv-software-src/opensbi
+    fi
     pushd opensbi
 
     make \
