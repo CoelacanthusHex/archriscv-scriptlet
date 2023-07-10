@@ -12,13 +12,14 @@ use_fixed_password=0
 build_firmware=1
 varbose_arg=
 rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
+fstype=ext4
 
 uboot_version=v2023.04
 opensbi_version=v1.2
 
 show_help() {
 cat << EOF
-Usage: ${0##*/} [-hvfd] [-p PASSWORD] [-r ROOTFS] [FILENAME]
+Usage: ${0##*/} [-hvfd] [-p PASSWORD] [-r ROOTFS] [-t FSTYPE] [FILENAME]
 Create Arch RISC-V distro image.
 
     FILENAME    generated image file name
@@ -30,13 +31,14 @@ Create Arch RISC-V distro image.
     -d          only build the disk image and omit building OpenSBI/U-Boot
     -p PASSWORD set root password to PASSWORD instead of passwd in rootfs
     -r ROOTFS   specify rootfs file name
+    -t FSTYPE   specify rootfs filesystem type (default: ext4)
     -v          verbose mode
 EOF
 }
 
 parse-args() {
     local OPTIND=1
-    while getopts 'hvfdr:p:' opt; do
+    while getopts 'hvfdr:t:p:' opt; do
       case $opt in
         h)  show_help
             exit 0
@@ -51,6 +53,8 @@ parse-args() {
         p)  password=$OPTARG
             ;;
         r)  rootfs=$OPTARG
+            ;;
+        t)  fstype=$OPTARG
             ;;
         *)  show_help >&2
             exit 1
@@ -142,8 +146,7 @@ msg "Partitioning..."
 sudo partprobe "$loopdev"
 partdev="$loopdev"p1
 
-sudo mkfs.ext4 "$partdev"
-sudo e2label "$partdev" rootfs
+sudo mkfs.$fstype -L rootfs "$partdev"
 
 sudo mkdir -p mnt
 sudo mount "$partdev" mnt
