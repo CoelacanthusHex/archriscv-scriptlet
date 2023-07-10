@@ -173,13 +173,13 @@ label linux
     menu label Linux linux
     kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux.img
-    append earlyprintk rw root=UUID=$partuuid rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
+    append earlyprintk rw root=UUID=$partuuid rootwait console=ttyS0
 
 label linux-fallback
     menu label Linux linux (fallback initramfs)
     kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux-fallback.img
-    append earlyprintk rw root=UUID=$partuuid rootwait rootfstype=ext4 LANG=en_US.UTF-8 console=ttyS0
+    append earlyprintk rw root=UUID=$partuuid rootwait console=ttyS0
 EOF
 
 cat << EOF | sudo tee mnt/etc/systemd/network/default.network
