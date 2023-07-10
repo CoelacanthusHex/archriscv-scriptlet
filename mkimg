@@ -82,7 +82,7 @@ then
         git checkout v2023.04
         popd
     else
-        git clone --depth 1 -b v2023.04 https://github.com/u-boot/u-boot.git
+        git clone --filter=blob:none -b v2023.04 https://github.com/u-boot/u-boot.git
     fi
     pushd u-boot
 
@@ -101,7 +101,7 @@ then
         git checkout v2023.04
         popd
     else
-        git clone --depth 1 -b v1.2 https://github.com/riscv-software-src/opensbi
+        git clone --filter=blob:none -b v1.2 https://github.com/riscv-software-src/opensbi
     fi
     pushd opensbi
 
