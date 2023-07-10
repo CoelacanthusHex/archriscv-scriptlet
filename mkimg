@@ -77,9 +77,8 @@ then
 
     if [[ -d u-boot ]]; then
         pushd u-boot
-        git checkout master -- ':(top)'
-        git checkout master
-        git pull --rebase
+        git checkout HEAD -- ':(top)'
+        git fetch origin
         git checkout v2023.04
         popd
     else
@@ -97,9 +96,8 @@ then
 
     if [[ -d opensbi ]]; then
         pushd opensbi
-        git checkout master -- ':(top)'
-        git checkout master
-        git pull --rebase
+        git checkout HEAD -- ':(top)'
+        git fetch origin
         git checkout v2023.04
         popd
     else
