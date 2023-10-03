@@ -14,8 +14,8 @@ varbose_arg=
 rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
 fstype=ext4
 
-uboot_version=v2023.04
-opensbi_version=v1.2
+uboot_version=v2023.10
+opensbi_version=v1.3.1
 
 show_help() {
 cat << EOF
