@@ -20,6 +20,9 @@ Useful scripts for building and running Arch RISC-V Qcow image.
 
 ## Start QEMU
 
+> [!IMPORTANT]
+> You must use fallback initrd first, and re-generate initramfs with `mkinitcpio -P` to use non-fallback version later.
+
 ```bash
 ./startqemu.sh [qcow image file]
 ```
