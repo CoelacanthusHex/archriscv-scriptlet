@@ -117,6 +117,9 @@ then
     fi
     pushd opensbi
 
+    # If user set it, OpenSBI will failed to build.
+    unset PYTHONSAFEPATH
+
     make \
         CROSS_COMPILE=riscv64-linux-gnu- \
         PLATFORM=generic \
