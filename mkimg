@@ -152,7 +152,7 @@ sudo mkdir -p mnt
 sudo mount "$partdev" mnt
 sudo chown root:root mnt
 
-partuuid=$(sudo findmnt mnt -o UUID -n)
+uuid=$(sudo findmnt mnt -o UUID -n)
 
 msg "Extract rootfs..."
 
@@ -176,13 +176,13 @@ label linux
     menu label Linux linux
     kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux.img
-    append earlyprintk rw root=UUID=$partuuid rootwait console=ttyS0
+    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0
 
 label linux-fallback
     menu label Linux linux (fallback initramfs)
     kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux-fallback.img
-    append earlyprintk rw root=UUID=$partuuid rootwait console=ttyS0
+    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0
 EOF
 
 cat << EOF | sudo tee mnt/etc/systemd/network/default.network
