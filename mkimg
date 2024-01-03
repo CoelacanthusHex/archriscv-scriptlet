@@ -14,6 +14,7 @@ varbose_arg=
 rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
 fstype=ext4
 kernel=linux
+kernel_suffix=""
 cmdline=""
 
 uboot_version=v2023.10
@@ -175,6 +176,7 @@ msg "Install kernel package..."
 
 if [[ $kernel != linux ]]
 then
+    kernel_suffix="${kernel#linux}"
     echo -e "[unsupported]\nInclude = /etc/pacman.d/mirrorlist" | sudo tee -a mnt/etc/pacman.conf
 fi
 
@@ -190,14 +192,14 @@ default linux-fallback
 
 label linux
     menu label Linux linux
-    kernel /boot/vmlinuz-linux
-    initrd /boot/initramfs-linux.img
+    kernel /boot/vmlinuz-linux$kernel_suffix
+    initrd /boot/initramfs-linux$kernel_suffix.img
     append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
 
 label linux-fallback
     menu label Linux linux (fallback initramfs)
-    kernel /boot/vmlinuz-linux
-    initrd /boot/initramfs-linux-fallback.img
+    kernel /boot/vmlinuz-linux$kernel_suffix
+    initrd /boot/initramfs-linux$kernel_suffix-fallback.img
     append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
 EOF
 
