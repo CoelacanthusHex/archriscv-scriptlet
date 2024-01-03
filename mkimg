@@ -13,6 +13,8 @@ build_firmware=1
 varbose_arg=
 rootfs="archriscv-$(date --rfc-3339=date).tar.zst"
 fstype=ext4
+kernel=linux
+cmdline=""
 
 uboot_version=v2023.10
 opensbi_version=v1.3.1
@@ -32,13 +34,15 @@ Create Arch RISC-V distro image.
     -p PASSWORD set root password to PASSWORD instead of passwd in rootfs
     -r ROOTFS   specify rootfs file name
     -t FSTYPE   specify rootfs filesystem type (default: ext4)
+    -k KERNEL   specify kernel package name (default: linux)
+    -c CMDLINE  append CMDLINE to kernel command line
     -v          verbose mode
 EOF
 }
 
 parse-args() {
     local OPTIND=1
-    while getopts 'hvfdr:t:p:' opt; do
+    while getopts 'hvfdr:t:p:k:c:' opt; do
       case $opt in
         h)  show_help
             exit 0
@@ -55,6 +59,10 @@ parse-args() {
         r)  rootfs=$OPTARG
             ;;
         t)  fstype=$OPTARG
+            ;;
+        k)  kernel=$OPTARG
+            ;;
+        c)  cmdline=$OPTARG
             ;;
         *)  show_help >&2
             exit 1
@@ -165,9 +173,14 @@ popd
 
 msg "Install kernel package..."
 
+if [[ $kernel != linux ]]
+then
+    echo -e "[unsupported]\nInclude = /etc/pacman.d/mirrorlist" | sudo tee -a mnt/etc/pacman.conf
+fi
+
 sudo systemd-nspawn -D mnt pacman \
     --noconfirm --needed \
-    -Syu linux linux-firmware
+    -Syu $kernel linux-firmware
 
 sudo mkdir -p mnt/boot/extlinux
 cat << EOF | sudo tee mnt/boot/extlinux/extlinux.conf
@@ -179,13 +192,13 @@ label linux
     menu label Linux linux
     kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux.img
-    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0
+    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
 
 label linux-fallback
     menu label Linux linux (fallback initramfs)
     kernel /boot/vmlinuz-linux
     initrd /boot/initramfs-linux-fallback.img
-    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0
+    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
 EOF
 
 cat << EOF | sudo tee mnt/etc/systemd/network/default.network
