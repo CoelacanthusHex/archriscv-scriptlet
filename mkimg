@@ -154,7 +154,7 @@ else
 fi
 
 msg "Partitioning..."
-(echo n; echo p; echo 1; echo ''; echo ''; echo w) | sudo fdisk "$loopdev"
+sudo parted "$loopdev" mklabel gpt mkpart "" "$fstype" 0% 100%
 
 sudo partprobe "$loopdev"
 partdev="$loopdev"p1

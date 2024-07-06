@@ -5,6 +5,7 @@ Useful scripts for building and running Arch RISC-V Qcow image.
 ## Prerequisite
 
 * arch-install-scripts
+* parted
 * git
 * qemu-img
 * qemu-system-riscv
