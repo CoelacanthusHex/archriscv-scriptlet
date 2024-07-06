@@ -154,6 +154,8 @@ else
 fi
 
 msg "Partitioning..."
+# FIXME: otherwise NBD device is not ready
+sleep 1s
 sudo parted "$loopdev" mklabel gpt mkpart "" "$fstype" 0% 100%
 
 sudo partprobe "$loopdev"
