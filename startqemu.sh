@@ -26,5 +26,5 @@ qemu-system-riscv64 \
     -device virtio-blk-device,drive=hd0 \
     -object rng-random,filename=/dev/urandom,id=rng0 \
     -device virtio-rng-device,rng=rng0 \
-    -drive file="$file",format=qcow2,id=hd0 \
+    -drive file="$file",format=qcow2,id=hd0,if=none \
     -monitor unix:/tmp/qemu-monitor,server,nowait
