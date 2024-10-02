@@ -185,6 +185,35 @@ fi
 
 sudo systemd-nspawn -D mnt pacman \
     --noconfirm --needed \
+    -Syu mkinitcpio
+
+# This disables initramfs compression, however it also keeps kernel modules
+# compressed so the net difference to initramfs size is negligible.
+# This makes boot a lot faster, since now we don't need to decompress
+# the whole initramfs but only a few modules, which also can be decompressed
+# in parrallel.
+cat << EOF | sudo patch -p1
+diff -Naurp a/mnt/etc/mkinitcpio.conf b/mnt/etc/mkinitcpio.conf
+--- a/mnt/etc/mkinitcpio.conf   2024-03-18 16:25:46.597751709 +0200
++++ b/mnt/etc/mkinitcpio.conf   2024-03-18 16:26:34.783941328 +0200
+@@ -61,6 +61,7 @@ HOOKS=(base udev autodetect modconf kms
+ #COMPRESSION="xz"
+ #COMPRESSION="lzop"
+ #COMPRESSION="lz4"
++COMPRESSION=cat
+
+ # COMPRESSION_OPTIONS
+ # Additional options for the compressor
+@@ -70,4 +71,4 @@ HOOKS=(base udev autodetect modconf kms
+ # Decompress kernel modules during initramfs creation.
+ # Enable to speedup boot process, disable to save RAM
+ # during early userspace. Switch (yes/no).
+-#MODULES_DECOMPRESS="yes"
++MODULES_DECOMPRESS="no"
+EOF
+
+sudo systemd-nspawn -D mnt pacman \
+    --noconfirm --needed \
     -Syu $kernel linux-firmware
 
 sudo mkdir -p mnt/boot/extlinux
