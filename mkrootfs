@@ -58,6 +58,7 @@ sudo chown root:root ./rootfs
 sudo pacstrap \
     -C /usr/share/devtools/pacman.conf.d/extra-riscv64.conf \
     -M \
+    -K \
     ./rootfs \
     base
 
