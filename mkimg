@@ -77,7 +77,8 @@ parse-args() {
 toggle-systemd-firstboot() {
     msg2 "Toggle systemd-firstboot..."
     sudo rm -f mnt/etc/{machine-id,hostname,shadow}
-    sudo systemd-nspawn -D mnt systemctl enable systemd-firstboot.service
+    # Mask Arch filesystem's factory to avoid the removed shadow file being copied over
+    sudo ln -s /dev/null mnt/etc/tmpfiles.d/arch.conf
 }
 
 use-fixed-password() {
