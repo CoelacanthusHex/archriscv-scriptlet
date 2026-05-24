@@ -9,6 +9,8 @@ Useful scripts for building and running Arch RISC-V Qcow image.
 * git
 * qemu-img
 * qemu-system-riscv
+* edk2-riscv64
+* dosfstools
 * riscv64-linux-gnu-gcc
 * devtools-riscv64 ([AUR](https://aur.archlinux.org/packages/devtools-riscv64))
 
@@ -21,10 +23,8 @@ Useful scripts for building and running Arch RISC-V Qcow image.
 
 ## Start QEMU
 
-> [!IMPORTANT]
-> You must use fallback initrd first, and re-generate initramfs with `mkinitcpio -P` to use non-fallback version later.
-
 ```bash
 ./startqemu.sh [qcow image file]
 ```
 
+Set `FIRMWARE=uboot` to boot the same image through OpenSBI/U-Boot with `-bios` instead.

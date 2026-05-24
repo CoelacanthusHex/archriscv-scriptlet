@@ -6,6 +6,7 @@
 # shellcheck disable=1091
 . /usr/share/makepkg/util.sh
 colorize
+set -e
 
 verbose=0
 use_fixed_password=0
@@ -156,23 +157,31 @@ fi
 msg "Partitioning..."
 # FIXME: otherwise NBD device is not ready
 sleep 1s
-sudo parted "$loopdev" mklabel gpt mkpart "" "$fstype" 0% 100%
+sudo parted "$loopdev" --script \
+    mklabel gpt \
+    mkpart ESP fat32 1MiB 513MiB \
+    set 1 esp on \
+    mkpart rootfs "$fstype" 513MiB 100%
 
 sudo partprobe "$loopdev"
-partdev="$loopdev"p1
+sudo udevadm settle
+espdev="$loopdev"p1
+partdev="$loopdev"p2
 
+sudo mkfs.fat -F 32 -n ESP "$espdev"
 sudo mkfs.$fstype -L rootfs "$partdev"
 
 sudo mkdir -p mnt
 sudo mount "$partdev" mnt
 sudo chown root:root mnt
 
-uuid=$(sudo findmnt mnt -o UUID -n)
-
 msg "Extract rootfs..."
 
 pushd mnt
-sudo bsdtar $varbose_arg -kpxf "../$rootfs"
+sudo bsdtar $varbose_arg -kpxf "../$rootfs" \
+    --exclude './var/log/journal' \
+    --exclude './var/log/journal/*'
+sudo bsdtar $varbose_arg -kpxf "../$rootfs" --no-fflags './var/log/journal'
 popd
 
 msg "Install kernel package..."
@@ -184,27 +193,9 @@ then
 fi
 
 sudo systemd-nspawn -D mnt pacman \
-    --noconfirm --needed \
-    -Syu $kernel linux-firmware
-
-sudo mkdir -p mnt/boot/extlinux
-cat << EOF | sudo tee mnt/boot/extlinux/extlinux.conf
-menu title Arch RISC-V Boot Menu
-timeout 100
-default linux-fallback
-
-label linux
-    menu label Linux linux
-    kernel /boot/vmlinuz-linux$kernel_suffix
-    initrd /boot/initramfs-linux$kernel_suffix.img
-    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
-
-label linux-fallback
-    menu label Linux linux (fallback initramfs)
-    kernel /boot/vmlinuz-linux$kernel_suffix
-    initrd /boot/initramfs-linux$kernel_suffix-fallback.img
-    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
-EOF
+    --disable-sandbox --noconfirm --needed \
+    -Syu $kernel linux-firmware grub
+sudo systemd-nspawn -D mnt mkinitcpio -P -- -S autodetect
 
 cat << EOF | sudo tee mnt/etc/systemd/network/default.network
 [Match]
@@ -214,6 +205,31 @@ Name=en*
 DHCP=yes
 EOF
 sudo systemd-nspawn -D mnt systemctl enable systemd-networkd.service
+
+msg "Install EFI bootloader..."
+
+sudo mkdir -p mnt/efi
+
+esp_uuid=$(sudo blkid -s UUID -o value "$espdev")
+cat << EOF | sudo tee -a mnt/etc/fstab
+UUID=$esp_uuid /efi vfat umask=0077 0 2
+EOF
+
+sudo systemd-nspawn -D mnt \
+    --bind="$loopdev" \
+    --bind="$espdev" \
+    --bind="$partdev" \
+    /bin/sh -c "mount /efi && grub-install \
+        --target=riscv64-efi \
+        --efi-directory=/efi \
+        --bootloader-id=GRUB \
+        --removable \
+        --no-nvram; status=\$?; umount /efi; exit \$status"
+sudo systemd-nspawn -D mnt \
+    --bind="$loopdev" \
+    --bind="$partdev" \
+    --bind-ro=/dev/disk \
+    grub-mkconfig -o /boot/grub/grub.cfg
 
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
