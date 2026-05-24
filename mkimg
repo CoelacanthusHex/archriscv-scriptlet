@@ -17,9 +17,25 @@ fstype=ext4
 kernel=linux
 kernel_suffix=""
 cmdline=""
+loopdev=
 
 uboot_version=v2023.10
 opensbi_version=v1.3.1
+
+cleanup() {
+    trap - EXIT INT TERM
+    sudo umount -R mnt 2>/dev/null || true
+    if [[ -n $loopdev ]]
+    then
+        if [[ $filename == *.qcow2 ]]
+        then
+            sudo qemu-nbd -d "$loopdev" || true
+        else
+            sudo losetup -d "$loopdev" || true
+        fi
+    fi
+    sudo sync
+}
 
 show_help() {
 cat << EOF
@@ -153,6 +169,8 @@ else
     fallocate "$filename" -l 10G
     loopdev=$(sudo losetup --show -P -f "$filename")
 fi
+trap cleanup EXIT
+trap 'cleanup; exit 1' INT TERM
 
 msg "Partitioning..."
 # FIXME: otherwise NBD device is not ready
@@ -186,6 +204,14 @@ popd
 
 msg "Install kernel package..."
 
+sudo mkdir -p mnt/boot
+sudo mount "$espdev" mnt/boot
+
+esp_uuid=$(sudo blkid -s UUID -o value "$espdev")
+cat << EOF | sudo tee -a mnt/etc/fstab
+UUID=$esp_uuid /boot vfat umask=0077 0 2
+EOF
+
 if [[ $kernel != linux ]]
 then
     kernel_suffix="${kernel#linux}"
@@ -208,25 +234,19 @@ sudo systemd-nspawn -D mnt systemctl enable systemd-networkd.service
 
 msg "Install EFI bootloader..."
 
-sudo mkdir -p mnt/efi
-
-esp_uuid=$(sudo blkid -s UUID -o value "$espdev")
-cat << EOF | sudo tee -a mnt/etc/fstab
-UUID=$esp_uuid /efi vfat umask=0077 0 2
-EOF
-
 sudo systemd-nspawn -D mnt \
     --bind="$loopdev" \
     --bind="$espdev" \
     --bind="$partdev" \
-    /bin/sh -c "mount /efi && grub-install \
+    grub-install \
         --target=riscv64-efi \
-        --efi-directory=/efi \
+        --efi-directory=/boot \
         --bootloader-id=GRUB \
         --removable \
-        --no-nvram; status=\$?; umount /efi; exit \$status"
+        --no-nvram
 sudo systemd-nspawn -D mnt \
     --bind="$loopdev" \
+    --bind="$espdev" \
     --bind="$partdev" \
     --bind-ro=/dev/disk \
     grub-mkconfig -o /boot/grub/grub.cfg
@@ -240,11 +260,4 @@ yes y | sudo pacman \
 (( use_fixed_password==0 )) && toggle-systemd-firstboot || use-fixed-password
 
 msg2 "Unmount and sync..."
-sudo umount mnt
-if [[ $filename == *.qcow2 ]]
-then
-    sudo qemu-nbd -d "$loopdev"
-else
-    sudo losetup -d "$loopdev"
-fi
-sudo sync
+cleanup
