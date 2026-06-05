@@ -16,13 +16,20 @@ parse-args() {
 parse-args "$@"
 
 msg "Starting qemu"
+if [[ $FIRMWARE == uboot ]]; then
+    firmware_args=(-bios ./opensbi_fw_payload.bin)
+else
+    firmware_args=(
+        -drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/edk2/riscv64/RISCV_VIRT_CODE.fd
+    )
+fi
 qemu-system-riscv64 \
     -nographic \
     -machine virt \
     -smp 8 \
     -m 4G \
     -netdev user,id=n0 -device virtio-net,netdev=n0 \
-    -bios ./opensbi_fw_payload.bin \
+    "${firmware_args[@]}" \
     -device virtio-blk-device,drive=hd0 \
     -object rng-random,filename=/dev/urandom,id=rng0 \
     -device virtio-rng-device,rng=rng0 \

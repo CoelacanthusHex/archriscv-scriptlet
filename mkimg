@@ -6,6 +6,7 @@
 # shellcheck disable=1091
 . /usr/share/makepkg/util.sh
 colorize
+set -e
 
 verbose=0
 use_fixed_password=0
@@ -16,9 +17,25 @@ fstype=ext4
 kernel=linux
 kernel_suffix=""
 cmdline=""
+loopdev=
 
 uboot_version=v2023.10
 opensbi_version=v1.3.1
+
+cleanup() {
+    trap - EXIT INT TERM
+    sudo umount -R mnt 2>/dev/null || true
+    if [[ -n $loopdev ]]
+    then
+        if [[ $filename == *.qcow2 ]]
+        then
+            sudo qemu-nbd -d "$loopdev" || true
+        else
+            sudo losetup -d "$loopdev" || true
+        fi
+    fi
+    sudo sync
+}
 
 show_help() {
 cat << EOF
@@ -152,30 +169,48 @@ else
     fallocate "$filename" -l 10G
     loopdev=$(sudo losetup --show -P -f "$filename")
 fi
+trap cleanup EXIT
+trap 'cleanup; exit 1' INT TERM
 
 msg "Partitioning..."
 # FIXME: otherwise NBD device is not ready
 sleep 1s
-sudo parted "$loopdev" mklabel gpt mkpart "" "$fstype" 0% 100%
+sudo parted "$loopdev" --script \
+    mklabel gpt \
+    mkpart ESP fat32 1MiB 513MiB \
+    set 1 esp on \
+    mkpart rootfs "$fstype" 513MiB 100%
 
 sudo partprobe "$loopdev"
-partdev="$loopdev"p1
+sudo udevadm settle
+espdev="$loopdev"p1
+partdev="$loopdev"p2
 
+sudo mkfs.fat -F 32 -n ESP "$espdev"
 sudo mkfs.$fstype -L rootfs "$partdev"
 
 sudo mkdir -p mnt
 sudo mount "$partdev" mnt
 sudo chown root:root mnt
 
-uuid=$(sudo findmnt mnt -o UUID -n)
-
 msg "Extract rootfs..."
 
 pushd mnt
-sudo bsdtar $varbose_arg -kpxf "../$rootfs"
+sudo bsdtar $varbose_arg -kpxf "../$rootfs" \
+    --exclude './var/log/journal' \
+    --exclude './var/log/journal/*'
+sudo bsdtar $varbose_arg -kpxf "../$rootfs" --no-fflags './var/log/journal'
 popd
 
 msg "Install kernel package..."
+
+sudo mkdir -p mnt/boot
+sudo mount "$espdev" mnt/boot
+
+esp_uuid=$(sudo blkid -s UUID -o value "$espdev")
+cat << EOF | sudo tee -a mnt/etc/fstab
+UUID=$esp_uuid /boot vfat umask=0077 0 2
+EOF
 
 if [[ $kernel != linux ]]
 then
@@ -184,27 +219,9 @@ then
 fi
 
 sudo systemd-nspawn -D mnt pacman \
-    --noconfirm --needed \
-    -Syu $kernel linux-firmware
-
-sudo mkdir -p mnt/boot/extlinux
-cat << EOF | sudo tee mnt/boot/extlinux/extlinux.conf
-menu title Arch RISC-V Boot Menu
-timeout 100
-default linux-fallback
-
-label linux
-    menu label Linux linux
-    kernel /boot/vmlinuz-linux$kernel_suffix
-    initrd /boot/initramfs-linux$kernel_suffix.img
-    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
-
-label linux-fallback
-    menu label Linux linux (fallback initramfs)
-    kernel /boot/vmlinuz-linux$kernel_suffix
-    initrd /boot/initramfs-linux$kernel_suffix-fallback.img
-    append earlyprintk rw root=UUID=$uuid rootwait console=ttyS0,115200 $cmdline
-EOF
+    --disable-sandbox --noconfirm --needed \
+    -Syu $kernel linux-firmware grub
+sudo systemd-nspawn -D mnt mkinitcpio -P -- -S autodetect
 
 cat << EOF | sudo tee mnt/etc/systemd/network/default.network
 [Match]
@@ -215,6 +232,25 @@ DHCP=yes
 EOF
 sudo systemd-nspawn -D mnt systemctl enable systemd-networkd.service
 
+msg "Install EFI bootloader..."
+
+sudo systemd-nspawn -D mnt \
+    --bind="$loopdev" \
+    --bind="$espdev" \
+    --bind="$partdev" \
+    grub-install \
+        --target=riscv64-efi \
+        --efi-directory=/boot \
+        --bootloader-id=GRUB \
+        --removable \
+        --no-nvram
+sudo systemd-nspawn -D mnt \
+    --bind="$loopdev" \
+    --bind="$espdev" \
+    --bind="$partdev" \
+    --bind-ro=/dev/disk \
+    grub-mkconfig -o /boot/grub/grub.cfg
+
 msg "Clean up..."
 msg2 "Clean up pacman package cache..."
 yes y | sudo pacman \
@@ -224,11 +260,4 @@ yes y | sudo pacman \
 (( use_fixed_password==0 )) && toggle-systemd-firstboot || use-fixed-password
 
 msg2 "Unmount and sync..."
-sudo umount mnt
-if [[ $filename == *.qcow2 ]]
-then
-    sudo qemu-nbd -d "$loopdev"
-else
-    sudo losetup -d "$loopdev"
-fi
-sudo sync
+cleanup
